@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free-Time Activities — Flashcards &amp; Practice</title>
+<style>
+:root{
+  --ink:#1b2430; --muted:#5d6b7a; --line:#dfe5ec; --bg:#f4f7fb; --card:#ffffff;
+  --brand:#2f6f6b; --brand-soft:#e6f2f1; --brand-dark:#235552;
+  --amber:#c8781a; --amber-soft:#fdf1e0;
+  --good:#2e7d4f; --good-soft:#e7f4ec;
+  --bad:#b3362f; --bad-soft:#fbeceb;
+  --radius:14px; --shadow:0 2px 10px rgba(27,36,48,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.55; min-height:100vh;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:880px;margin:0 auto;padding:16px}
+header.top{
+  background:var(--brand); color:#fff; padding:14px 16px; border-radius:var(--radius);
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+header.top h1{font-size:1.05rem;font-weight:700;letter-spacing:.2px}
+header.top .brand{font-size:.78rem;opacity:.85;letter-spacing:1px;text-transform:uppercase}
+.tabs{display:flex;gap:8px;margin:14px 0}
+.tab{
+  flex:1; padding:10px 8px; border:1px solid var(--line); background:var(--card);
+  border-radius:10px; font-size:.92rem; font-weight:600; color:var(--muted);
+  cursor:pointer; text-align:center; font-family:inherit;
+}
+.tab.active{background:var(--brand); color:#fff; border-color:var(--brand)}
+.tab:disabled{opacity:.45; cursor:not-allowed}
+.panel{display:none}
+.panel.show{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card + .card{margin-top:14px}
+h2{font-size:1.1rem;margin-bottom:8px}
+h3{font-size:.95rem;margin-bottom:6px}
+p.lead{color:var(--muted);font-size:.93rem}
+.btn{
+  font-family:inherit;font-size:.95rem;font-weight:600;padding:11px 18px;border-radius:10px;
+  border:1px solid var(--brand);background:var(--brand);color:#fff;cursor:pointer;
+}
+.btn:hover{background:var(--brand-dark)}
+.btn.ghost{background:var(--card);color:var(--brand)}
+.btn.ghost:hover{background:var(--brand-soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:8px 13px;font-size:.88rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+label.fld{display:block;font-size:.88rem;font-weight:600;margin-bottom:5px}
+input[type=text]{
+  font-family:inherit;font-size:1rem;padding:11px 12px;border:1px solid var(--line);
+  border-radius:10px;width:100%;background:#fff;color:var(--ink);
+}
+input[type=text]:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+select{
+  font-family:inherit;font-size:.95rem;padding:9px 11px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--ink);
+}
+
+/* ---------- flashcard ---------- */
+.fc-stage{perspective:1200px;margin:14px 0}
+.fc{
+  position:relative;width:100%;min-height:230px;cursor:pointer;
+  transition:transform .5s cubic-bezier(.3,.8,.3,1);transform-style:preserve-3d;
+}
+.fc.flipped{transform:rotateY(180deg)}
+.fc-face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--radius);border:1px solid var(--line);background:var(--card);
+  padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;box-shadow:var(--shadow);
+}
+.fc-back{transform:rotateY(180deg);background:var(--brand-soft);border-color:#c9e0de}
+.fc-word{font-size:1.75rem;font-weight:700;line-height:1.25}
+.fc-ipa{color:var(--muted);margin-top:8px;font-size:1rem}
+.fc-pos{
+  margin-top:10px;font-size:.76rem;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--brand);background:var(--brand-soft);padding:3px 10px;border-radius:99px;font-weight:700;
+}
+.fc-mean{font-size:1.45rem;font-weight:700;color:var(--brand-dark)}
+.fc-ex{margin-top:14px;font-style:italic;color:#2c4a48;font-size:1rem;max-width:46ch}
+.fc-hint{position:absolute;bottom:10px;left:0;right:0;font-size:.76rem;color:var(--muted)}
+.fc-count{font-size:.88rem;color:var(--muted);font-weight:600}
+
+/* ---------- bars ---------- */
+.bar{height:9px;background:#e7ecf2;border-radius:99px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--brand);width:0;border-radius:99px;transition:width .3s}
+.timebar{height:7px;background:#e7ecf2;border-radius:99px;overflow:hidden;margin-top:8px}
+.timebar > i{display:block;height:100%;background:var(--good);width:100%;border-radius:99px;transition:width .1s linear}
+.timebar.warn > i{background:var(--amber)}
+.timebar.danger > i{background:var(--bad)}
+.meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);font-weight:600;margin-bottom:6px}
+
+/* ---------- quiz ---------- */
+.sect-tag{
+  display:inline-block;font-size:.74rem;letter-spacing:.6px;text-transform:uppercase;font-weight:700;
+  color:var(--amber);background:var(--amber-soft);padding:3px 10px;border-radius:99px;margin-bottom:10px;
+}
+.qtext{font-size:1.12rem;font-weight:600;margin-bottom:4px}
+.qsub{font-size:.9rem;color:var(--muted);margin-bottom:14px}
+.opts{display:grid;gap:9px}
+.opt{
+  font-family:inherit;font-size:1rem;text-align:left;padding:13px 15px;border:1px solid var(--line);
+  background:#fff;border-radius:11px;cursor:pointer;color:var(--ink);display:flex;gap:10px;align-items:center;
+}
+.opt:hover:not(:disabled){border-color:var(--brand);background:var(--brand-soft)}
+.opt .k{
+  width:25px;height:25px;flex:0 0 25px;border-radius:7px;background:#eef2f7;color:var(--muted);
+  display:grid;place-items:center;font-size:.82rem;font-weight:700;
+}
+.opt:disabled{cursor:not-allowed}
+.opt.wrong{background:var(--bad-soft);border-color:#eab6b2;color:#7e2b26;text-decoration:line-through;opacity:.85}
+.opt.wrong .k{background:#f3d2cf;color:#9c342d}
+.opt.right{background:var(--good-soft);border-color:#a9d6bb;color:#1d5e3a;font-weight:700}
+.opt.right .k{background:#bfe3cd;color:#1d5e3a}
+.shake{animation:sh .32s}
+@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.fb{margin-top:13px;padding:12px 14px;border-radius:11px;font-size:.95rem;display:none}
+.fb.show{display:block}
+.fb.retry{background:var(--amber-soft);border:1px solid #f0d2a8;color:#8a5212}
+.fb.ok{background:var(--good-soft);border:1px solid #a9d6bb;color:#1d5e3a}
+.fb.no{background:var(--bad-soft);border:1px solid #eab6b2;color:#8d2f29}
+.fb b{font-weight:700}
+
+/* ---------- result ---------- */
+.score-ring{text-align:center;padding:10px 0 4px}
+.score-num{font-size:3.1rem;font-weight:800;color:var(--brand);line-height:1}
+.score-of{font-size:1rem;color:var(--muted);font-weight:600}
+.pct{font-size:1.25rem;font-weight:700;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px;text-align:center}
+.stat b{display:block;font-size:1.3rem}
+.stat span{font-size:.78rem;color:var(--muted)}
+.praise{margin-top:14px;padding:14px;border-radius:12px;background:var(--brand-soft);border:1px solid #c9e0de;font-size:1rem}
+.shot{
+  margin-top:14px;padding:15px;border-radius:12px;background:var(--amber-soft);
+  border:2px dashed #e0a765;font-size:1rem;font-weight:600;color:#7a4a10;text-align:center;
+}
+.shot .big{font-size:1.5rem;display:block;margin-bottom:4px}
+.review{margin-top:16px}
+.review summary{
+  cursor:pointer;font-weight:700;font-size:.95rem;color:var(--brand);
+  background:var(--brand-soft);border:1px solid #c9e0de;border-radius:11px;padding:11px 14px;list-style:none;
+}
+.review summary::-webkit-details-marker{display:none}
+.review summary::before{content:"▸ ";font-weight:700}
+.review details[open] summary::before{content:"▾ "}
+.rv{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-top:9px;background:#fff;font-size:.93rem}
+.rv .q{font-weight:600}
+.rv .a{color:var(--good);font-weight:700;margin-top:3px}
+.rv .y{color:var(--bad);margin-top:2px}
+.stamp{margin-top:14px;font-size:.85rem;color:var(--muted);text-align:center}
+@media(max-width:520px){
+  .fc-word{font-size:1.45rem}.fc-mean{font-size:1.2rem}
+  .score-num{font-size:2.6rem}
+  .tab{font-size:.84rem;padding:9px 4px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <div class="brand">VUIVUI English Class</div>
+    <h1>Free-Time Activities — Flashcards &amp; Practice</h1>
+  </div>
+  <div id="whoBox" style="font-size:.85rem;opacity:.9"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" id="tabHome">Bắt đầu</button>
+  <button class="tab" id="tabFlash">Flashcards</button>
+  <button class="tab" id="tabQuiz">Bài tập</button>
+</div>
+
+<!-- ============ HOME ============ -->
+<section class="panel show" id="pHome">
+  <div class="card">
+    <h2>Chào em!</h2>
+    <p class="lead">Bài học hôm nay có <b>79 từ vựng</b> về chủ đề <i>Free-Time Activities</i> và một bài tập gồm <b>79 câu</b>.</p>
+    <div style="margin-top:16px">
+      <label class="fld" for="nameIn">Em hãy điền tên của mình:</label>
+      <input type="text" id="nameIn" placeholder="Ví dụ: Nguyễn Minh An" autocomplete="off">
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="goFlash">Học Flashcards trước</button>
+      <button class="btn ghost" id="goQuiz">Làm bài tập luôn</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Luật chơi của phần bài tập</h3>
+    <p class="lead">
+      • Mỗi câu có <b>thanh thời gian</b>. Hết giờ là mất điểm câu đó.<br>
+      • Nếu trả lời sai, em được <b>thử lại thêm 1 lần</b> trước khi hiện đáp án.<br>
+      • Đúng ngay lần 1: <b>1 điểm</b>. Đúng ở lần 2: <b>0,5 điểm</b>. Sai cả hai lần: <b>0 điểm</b>.<br>
+      • Bài có cả câu <b>trắc nghiệm</b> và câu <b>tự luận</b> (tự gõ đáp án), gồm cả phần <b>chia động từ 6 thì</b>.
+    </p>
+  </div>
+</section>
+
+<!-- ============ FLASHCARDS ============ -->
+<section class="panel" id="pFlash">
+  <div class="card">
+    <div class="row">
+      <select id="catSel" aria-label="Chọn nhóm từ"></select>
+      <span class="spacer"></span>
+      <span class="fc-count" id="fcCount">0 / 0</span>
+    </div>
+    <div class="bar" style="margin-top:10px"><i id="fcBar"></i></div>
+
+    <div class="fc-stage">
+      <div class="fc" id="fcCard">
+        <div class="fc-face fc-front">
+          <div class="fc-word" id="fcWord">—</div>
+          <div class="fc-ipa" id="fcIpa"></div>
+          <div class="fc-pos" id="fcPos"></div>
+          <div class="fc-hint">Bấm vào thẻ để lật · phím Space</div>
+        </div>
+        <div class="fc-face fc-back">
+          <div class="fc-mean" id="fcMean">—</div>
+          <div class="fc-ex" id="fcEx"></div>
+          <div class="fc-hint">Bấm để lật lại · phím ← →</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn ghost sm" id="fcPrev">← Thẻ trước</button>
+      <button class="btn ghost sm" id="fcFlip">Lật thẻ</button>
+      <button class="btn ghost sm" id="fcShuffle">Xáo trộn</button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="fcNext">Thẻ sau →</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="fcToQuiz">Xong rồi, làm bài tập →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section class="panel" id="pQuiz">
+  <div class="card">
+    <div class="meta">
+      <span id="qProg">Câu 1 / 79</span>
+      <span id="qScore">Điểm: 0</span>
+    </div>
+    <div class="bar"><i id="qBar"></i></div>
+    <div class="timebar" id="tBarWrap"><i id="tBar"></i></div>
+    <div class="meta" style="margin-top:6px;margin-bottom:0">
+      <span id="tLeft">30s</span>
+      <span id="tryInfo"></span>
+    </div>
+  </div>
+
+  <div class="card" id="qCard">
+    <span class="sect-tag" id="qTag">Phần A</span>
+    <div class="qtext" id="qText"></div>
+    <div class="qsub" id="qSub"></div>
+    <div class="opts" id="qOpts"></div>
+    <div id="typedWrap" style="display:none">
+      <input type="text" id="typedIn" placeholder="Gõ đáp án của em..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="typedBtn">Kiểm tra</button>
+      </div>
+    </div>
+    <div class="fb" id="qFb"></div>
+    <div class="row" style="margin-top:14px;display:none" id="nextRow">
+      <span class="spacer"></span>
+      <button class="btn" id="qNext">Câu tiếp theo →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESULT ============ -->
+<section class="panel" id="pResult">
+  <div class="card">
+    <h2 style="text-align:center" id="rName">Kết quả</h2>
+    <div class="score-ring">
+      <div><span class="score-num" id="rScore">0</span><span class="score-of"> / <span id="rTotal">79</span></span></div>
+      <div class="pct" id="rPct">0%</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="rFirst">0</b><span>Đúng ngay lần 1</span></div>
+      <div class="stat"><b id="rSecond">0</b><span>Đúng ở lần 2</span></div>
+      <div class="stat"><b id="rMiss">0</b><span>Chưa đúng</span></div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat"><b id="rTime">0:00</b><span>Thời gian làm bài</span></div>
+      <div class="stat"><b id="rTimeout">0</b><span>Câu bị hết giờ</span></div>
+    </div>
+
+    <div class="praise" id="rPraise"></div>
+
+    <div class="shot">
+      <span class="big">📸</span>
+      Em hãy <u>chụp lại ảnh màn hình kết quả này</u> và gửi lại cho cô nhé!
+    </div>
+
+    <div class="review" id="rReview"></div>
+    <div class="stamp" id="rStamp"></div>
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" id="againBtn">Làm lại bài tập</button>
+      <button class="btn ghost" id="backFlash">Ôn lại Flashcards</button>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* =========================================================
+   DỮ LIỆU TỪ VỰNG
+   ========================================================= */
+const VOCAB = [
+ {cat:"A1. Collocations with do", items:[
+  {w:"do aerobics",m:"tập thể dục nhịp điệu",ipa:"/duː eəˈrəubɪks/",pos:"phr.",ex:"My mother does aerobics every morning."},
+  {w:"do crosswords",m:"chơi giải ô chữ",ipa:"/duː ˈkrɒswɜːdz/",pos:"phr.",ex:"My grandfather does crosswords after breakfast."},
+  {w:"do gymnastics",m:"tập thể dục dụng cụ",ipa:"/duː dʒɪmˈnæstɪks/",pos:"phr.",ex:"I don’t do gymnastics. It’s too difficult."},
+  {w:"do judo",m:"tập võ judo",ipa:"/duː ˈdʒuːdəu/",pos:"phr.",ex:"I do judo. I have a class twice a week."},
+  {w:"do nothing",m:"không làm gì cả",ipa:"/duː ˈnʌθɪŋ/",pos:"phr.",ex:"On Sundays I like to do nothing."}
+ ]},
+ {cat:"A2. Collocations with play", items:[
+  {w:"play baseball",m:"chơi bóng chày",ipa:"/pleɪ ˈbeɪsbɔːl/",pos:"phr.",ex:"You play baseball a lot."},
+  {w:"play basketball",m:"chơi bóng rổ",ipa:"/pleɪ ˈbɑːskɪtbɔːl/",pos:"phr.",ex:"We play basketball in the gym."},
+  {w:"play Scrabble",m:"chơi cờ ghép chữ Scrabble",ipa:"/pleɪ ˈskræbl/",pos:"phr.",ex:"My family plays Scrabble on rainy days."},
+  {w:"play soccer",m:"chơi bóng đá",ipa:"/pleɪ ˈsɒkə/",pos:"phr.",ex:"Yes, I play soccer."},
+  {w:"play tennis",m:"chơi quần vợt",ipa:"/pleɪ ˈtenɪs/",pos:"phr.",ex:"John and I love to play tennis."},
+  {w:"play video games",m:"chơi trò chơi điện tử",ipa:"/pleɪ ˈvɪdiəu ɡeɪmz/",pos:"phr.",ex:"No, I’m not good at video games."}
+ ]},
+ {cat:"A3. Collocations with go", items:[
+  {w:"go camping",m:"đi cắm trại",ipa:"/ɡəu ˈkæmpɪŋ/",pos:"phr.",ex:"A week camping in a national park isn’t expensive."},
+  {w:"go hiking",m:"đi bộ đường dài (leo núi)",ipa:"/ɡəu ˈhaɪkɪŋ/",pos:"phr.",ex:"Do you want to go hiking?"},
+  {w:"go jogging",m:"đi chạy bộ",ipa:"/ɡəu ˈdʒɒɡɪŋ/",pos:"phr.",ex:"Faisal and Miteb go jogging in the park."},
+  {w:"go shopping",m:"đi mua sắm",ipa:"/ɡəu ˈʃɒpɪŋ/",pos:"phr.",ex:"We go shopping on Sundays."},
+  {w:"go sightseeing",m:"đi tham quan",ipa:"/ɡəu ˈsaɪtsiːɪŋ/",pos:"phr.",ex:"You can go sightseeing in your own city."},
+  {w:"go skiing",m:"đi trượt tuyết",ipa:"/ɡəu ˈskiːɪŋ/",pos:"phr.",ex:"Do you want to go skiing this weekend?"},
+  {w:"go swimming",m:"đi bơi",ipa:"/ɡəu ˈswɪmɪŋ/",pos:"phr.",ex:"Mei, do you want to go swimming with me?"},
+  {w:"go window-shopping",m:"đi ngắm đồ (không mua)",ipa:"/ɡəu ˈwɪndəu ʃɒpɪŋ/",pos:"phr.",ex:"I go window-shopping with my friends."}
+ ]},
+ {cat:"A4. Other verb + noun collocations", items:[
+  {w:"give someone a ride",m:"cho ai đó đi nhờ xe",ipa:"/ɡɪv ˈsʌmwʌn ə raɪd/",pos:"phr.",ex:"Can you give me a ride to the mall?"},
+  {w:"have a snack",m:"ăn nhẹ",ipa:"/hæv ə ˈsnæk/",pos:"phr.",ex:"Are you hungry? Have a snack."},
+  {w:"have an idea",m:"có một ý tưởng",ipa:"/hæv ən aɪˈdɪə/",pos:"phr.",ex:"I have an idea! Let’s go to the beach."},
+  {w:"have coffee",m:"uống cà phê",ipa:"/hæv ˈkɒfi/",pos:"phr.",ex:"Lisa and Nora are having coffee together."},
+  {w:"have fun",m:"vui chơi",ipa:"/hæv ˈfʌn/",pos:"phr.",ex:"Toshi has fun learning Spanish."},
+  {w:"make friends",m:"kết bạn",ipa:"/meɪk ˈfrendz/",pos:"phr.",ex:"He makes friends with new people easily."},
+  {w:"make plans",m:"lên kế hoạch",ipa:"/meɪk ˈplænz/",pos:"phr.",ex:"Let’s make plans for Saturday night."},
+  {w:"take a trip",m:"đi một chuyến",ipa:"/teɪk ə ˈtrɪp/",pos:"phr.",ex:"We take a trip to Da Lat every year."},
+  {w:"take a vacation",m:"đi nghỉ",ipa:"/teɪk ə vəˈkeɪʃn/",pos:"phr.",ex:"I am tired. I am taking a vacation!"},
+  {w:"take a walk",m:"đi dạo",ipa:"/teɪk ə ˈwɔːk/",pos:"phr.",ex:"Mary takes a walk every day."},
+  {w:"tell a joke",m:"kể một câu chuyện cười",ipa:"/tel ə ˈdʒəuk/",pos:"phr.",ex:"Tell me a joke. I need to hear something funny."},
+  {w:"take a class",m:"tham gia một lớp học",ipa:"/teɪk ə ˈklɑːs/",pos:"phr.",ex:"I’m taking a writing class."}
+ ]},
+ {cat:"A5. More things people do for fun", items:[
+  {w:"board game",m:"trò chơi cờ bàn",ipa:"/ˈbɔːd ɡeɪm/",pos:"n.",ex:"The family is playing a board game."},
+  {w:"video game",m:"trò chơi điện tử",ipa:"/ˈvɪdiəu ɡeɪm/",pos:"n.",ex:"The discussion is mostly about video games."},
+  {w:"gardening",m:"việc làm vườn",ipa:"/ˈɡɑːdnɪŋ/",pos:"n.",ex:"Gardening is the work you do in a garden."},
+  {w:"picnic",m:"buổi dã ngoại",ipa:"/ˈpɪknɪk/",pos:"n.",ex:"They take a picnic when they go on walks."},
+  {w:"storytelling",m:"việc kể chuyện",ipa:"/ˈstɔːritelɪŋ/",pos:"n.",ex:"The storytelling event is on Wednesday at 7 p.m."},
+  {w:"watch TV",m:"xem ti vi",ipa:"/wɒtʃ ˌtiː ˈviː/",pos:"phr.",ex:"I like to stay home and watch TV."},
+  {w:"watch sports",m:"xem thể thao",ipa:"/wɒtʃ ˈspɔːts/",pos:"phr.",ex:"I watch soccer, basketball and baseball games."},
+  {w:"go out to eat",m:"đi ăn ngoài",ipa:"/ɡəu ˈaut tu iːt/",pos:"phr.",ex:"My family likes going out to eat."},
+  {w:"listen to music",m:"nghe nhạc",ipa:"/ˈlɪsn tu ˈmjuːzɪk/",pos:"phr.",ex:"They listen to music when they go on walks."},
+  {w:"read books",m:"đọc sách",ipa:"/riːd ˈbuks/",pos:"phr.",ex:"Pete likes reading books and watching TV."},
+  {w:"cook",m:"nấu ăn",ipa:"/kʊk/",pos:"v.",ex:"My friends and I cook together once a month."},
+  {w:"relax",m:"thư giãn",ipa:"/rɪˈlæks/",pos:"v.",ex:"Sometimes his friends and family like to relax together."},
+  {w:"spend time",m:"dành thời gian",ipa:"/spend ˈtaɪm/",pos:"phr.",ex:"Hector likes to spend time alone."},
+  {w:"exercise",m:"việc tập thể dục",ipa:"/ˈeksəsaɪz/",pos:"n.",ex:"What do you do for exercise?"},
+  {w:"training",m:"buổi tập luyện",ipa:"/ˈtreɪnɪŋ/",pos:"n.",ex:"No, thanks. I have training today."}
+ ]},
+ {cat:"B. Places to have fun", items:[
+  {w:"beach",m:"bãi biển",ipa:"/biːtʃ/",pos:"n.",ex:"My friends and I are going to the beach this weekend."},
+  {w:"concert",m:"buổi hòa nhạc",ipa:"/ˈkɒnsət/",pos:"n.",ex:"They enjoy going to concerts."},
+  {w:"field",m:"sân (bóng)",ipa:"/fiːld/",pos:"n.",ex:"I sometimes see you at the field."},
+  {w:"gym",m:"phòng tập thể dục",ipa:"/dʒɪm/",pos:"n.",ex:"We play basketball in the gym."},
+  {w:"library",m:"thư viện",ipa:"/ˈlaɪbrəri/",pos:"n.",ex:"You can borrow a camera from the library."},
+  {w:"mall",m:"trung tâm mua sắm",ipa:"/mɔːl/",pos:"n.",ex:"Our friends meet us at the mall."},
+  {w:"museum",m:"bảo tàng",ipa:"/mjuˈziːəm/",pos:"n.",ex:"Uma likes to go to museums."},
+  {w:"national park",m:"vườn quốc gia",ipa:"/ˌnæʃnəl ˈpɑːk/",pos:"n.",ex:"A week camping in a national park isn’t expensive."},
+  {w:"park",m:"công viên",ipa:"/pɑːk/",pos:"n.",ex:"Our family likes going to the park."},
+  {w:"play",m:"vở kịch",ipa:"/pleɪ/",pos:"n.",ex:"My classmates enjoy going to plays."},
+  {w:"theater",m:"nhà hát, rạp hát",ipa:"/ˈθɪətə/",pos:"n.",ex:"Fiona’s favorite event is going to the theater."},
+  {w:"town hall",m:"tòa thị chính",ipa:"/ˌtaun ˈhɔːl/",pos:"n.",ex:"Meet at Town Hall at 2 p.m. on Thursday."},
+  {w:"store",m:"cửa hàng",ipa:"/stɔː/",pos:"n.",ex:"We go to expensive stores, but we only look."},
+  {w:"city",m:"thành phố",ipa:"/ˈsɪti/",pos:"n.",ex:"You can take a vacation in your own city."},
+  {w:"country",m:"vùng nông thôn; đất nước",ipa:"/ˈkʌntri/",pos:"n.",ex:"If the weather is all right, she goes to the country."}
+ ]},
+ {cat:"C1. What is the activity like?", items:[
+  {w:"boring",m:"nhàm chán",ipa:"/ˈbɔːrɪŋ/",pos:"adj.",ex:"Ben thinks sports are boring."},
+  {w:"competitive",m:"ganh đua, thích hơn thua",ipa:"/kəmˈpetətɪv/",pos:"adj.",ex:"Sometimes his friends are too competitive."},
+  {w:"dangerous",m:"nguy hiểm",ipa:"/ˈdeɪndʒərəs/",pos:"adj.",ex:"Skiing can be a dangerous activity."},
+  {w:"difficult",m:"khó",ipa:"/ˈdɪfɪkəlt/",pos:"adj.",ex:"No, gymnastics was too difficult."},
+  {w:"exciting",m:"thú vị, hấp dẫn",ipa:"/ɪkˈsaɪtɪŋ/",pos:"adj.",ex:"That TV show is really exciting."},
+  {w:"fun",m:"vui",ipa:"/fʌn/",pos:"adj.",ex:"John is a fun guy."},
+  {w:"interesting",m:"thú vị, đáng chú ý",ipa:"/ˈɪntrəstɪŋ/",pos:"adj.",ex:"For Ben, lectures are interesting."},
+  {w:"relaxing",m:"thư giãn, giúp thoải mái",ipa:"/rɪˈlæksɪŋ/",pos:"adj.",ex:"Keith likes to read on the weekend. It’s very relaxing."},
+  {w:"stressful",m:"gây căng thẳng",ipa:"/ˈstresfl/",pos:"adj.",ex:"Abdel thinks board games are stressful."},
+  {w:"wonderful",m:"tuyệt vời",ipa:"/ˈwʌndəfl/",pos:"adj.",ex:"Come and enjoy a wonderful evening."}
+ ]},
+ {cat:"C2. What is the place like?", items:[
+  {w:"busy",m:"đông đúc; bận rộn",ipa:"/ˈbɪzi/",pos:"adj.",ex:"From here, we can see the busy market scene below."},
+  {w:"crowded",m:"đông người",ipa:"/ˈkraudɪd/",pos:"adj.",ex:"James doesn’t like crowded places. There are too many people!"},
+  {w:"famous",m:"nổi tiếng",ipa:"/ˈfeɪməs/",pos:"adj.",ex:"Walk around and enjoy the famous places."},
+  {w:"modern",m:"hiện đại",ipa:"/ˈmɒdn/",pos:"adj.",ex:"Anna’s new house is very modern."},
+  {w:"outdoors",m:"ở ngoài trời",ipa:"/ˌautˈdɔːz/",pos:"adv.",ex:"In the summer, we sometimes eat outdoors."},
+  {w:"quiet",m:"yên tĩnh; ít nói",ipa:"/ˈkwaɪət/",pos:"adj.",ex:"What activities are fun for shy and quiet people?"},
+  {w:"scene",m:"quang cảnh; hiện trường",ipa:"/siːn/",pos:"n.",ex:"The police came to the scene of the accident."},
+  {w:"well-known",m:"được nhiều người biết đến",ipa:"/ˌwel ˈnəun/",pos:"adj.",ex:"Jim and Mary are well-known storytellers."}
+ ]}
+];
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
+const norm = s => String(s).toLowerCase().trim()
+  .replace(/[’`´]/g,"'").replace(/-/g," ").replace(/\s+/g," ").replace(/[.!?]+$/,"");
+
+/* =========================================================
+   CÂU HỎI BÀI TẬP (79 câu — mỗi từ vựng được kiểm tra 1 lần)
+   ========================================================= */
+const FLAT = VOCAB.flatMap((g,gi)=>g.items.map(it=>Object.assign({},it,{gi:gi})));
+const byWord = {}; FLAT.forEach(it=>{ byWord[it.w] = it; });
+
+/* 55 từ dành cho phần từ vựng — type: mcq | gap | typed */
+const VOCAB_PLAN = [
+ ["do gymnastics","mcq"],["do nothing","gap"],
+ ["play baseball","mcq"],["play soccer","gap"],["play tennis","typed"],
+ ["go hiking","mcq"],["go jogging","gap"],["go shopping","mcq"],["go sightseeing","typed"],
+ ["go swimming","gap"],["go window-shopping","mcq"],
+ ["have an idea","gap"],["have fun","mcq"],["make friends","mcq"],["take a vacation","typed"],
+ ["board game","mcq"],["video game","mcq"],["picnic","typed"],["storytelling","gap"],
+ ["watch TV","gap"],["listen to music","mcq"],["cook","gap"],["relax","typed"],
+ ["spend time","mcq"],["exercise","gap"],["training","mcq"],
+ ["beach","gap"],["field","mcq"],["gym","gap"],["mall","mcq"],["national park","mcq"],
+ ["park","gap"],["play","mcq"],["town hall","typed"],["store","mcq"],["city","gap"],["country","mcq"],
+ ["boring","typed"],["competitive","mcq"],["dangerous","gap"],["difficult","mcq"],["exciting","gap"],
+ ["fun","mcq"],["interesting","gap"],["relaxing","typed"],["stressful","gap"],["wonderful","mcq"],
+ ["busy","gap"],["crowded","gap"],["famous","mcq"],["modern","typed"],["outdoors","mcq"],
+ ["quiet","typed"],["scene","mcq"],["well-known","typed"]
+];
+
+/* Câu ví dụ viết lại cho rõ ngữ cảnh ở phần điền từ */
+const CUSTOM_GAP = {
+ "do nothing":"I’m really tired. On Sunday I just want to stay in bed and do nothing.",
+ "play soccer":"I play soccer for my school team every Saturday afternoon.",
+ "go jogging":"Faisal and Miteb go jogging in the park every morning before school.",
+ "go swimming":"The sea is warm today. Do you want to go swimming with me?",
+ "have an idea":"I have an idea! Let’s go to the beach this weekend.",
+ "storytelling":"The storytelling event is on Wednesday at 7 p.m. Jim will tell stories about winter.",
+ "watch TV":"I like to stay home and watch TV. My favourite show starts at eight.",
+ "cook":"My friends and I cook dinner together once a month.",
+ "exercise":"I walk to school every day. What do you do for exercise?",
+ "beach":"My friends and I are going to the beach to swim in the sea this weekend.",
+ "gym":"We play basketball in the gym when it rains.",
+ "park":"Our family likes going to the park to sit on the grass under the trees.",
+ "city":"You don’t have to travel far — you can go sightseeing in your own city.",
+ "dangerous":"You can fall and hurt yourself, so skiing can be a dangerous activity.",
+ "exciting":"That TV show is really exciting. I can’t stop watching it!",
+ "interesting":"For Ben, lectures are interesting because he learns new things.",
+ "stressful":"Abdel thinks board games are stressful because people want to win too much.",
+ "busy":"From here, we can see the busy market scene below. Everyone is working hard.",
+ "crowded":"James doesn’t like crowded places. There are too many people!"
+};
+
+/* Những cặp từ gần nghĩa — không bao giờ cho xuất hiện cùng nhau trong 1 câu */
+const CONFUSE = {
+ "busy":["crowded"], "crowded":["busy"],
+ "exciting":["interesting"], "interesting":["exciting"],
+ "famous":["well-known"], "well-known":["famous"],
+ "exercise":["training"], "training":["exercise"],
+ "city":["country"], "country":["city"],
+ "park":["national park"], "national park":["park"],
+ "relax":["relaxing"], "relaxing":["relax"]
+};
+
+const POS_VN = {"n.":"danh từ","v.":"động từ","adj.":"tính từ","adv.":"trạng từ","phr.":"cụm từ"};
+
+function distractors(item, n){
+  const ban = CONFUSE[item.w] || [];
+  const pool = VOCAB[item.gi].items.filter(x => x.w !== item.w && ban.indexOf(x.w) < 0);
+  return shuffle(pool).slice(0, n).map(x => x.w);
+}
+function hintOf(w, pos){
+  return w.split(" ").map(t => t[0] + "_".repeat(Math.max(0, t.length-1))).join(" ")
+       + " (" + w.split(" ").length + " từ, " + (POS_VN[pos] || pos) + ")";
+}
+function blankOut(ex, w){
+  const i = ex.toLowerCase().indexOf(w.toLowerCase());
+  if(i < 0) return null;
+  return ex.slice(0,i) + "______" + ex.slice(i + w.length);
+}
+
+const VOCAB_MCQ = [], VOCAB_GAP = [], VOCAB_TYPED = [];
+VOCAB_PLAN.forEach(([w, t]) => {
+  const it = byWord[w];
+  if(!it) return;
+  let kind = t;
+  let blanked = null;
+  if(kind === "gap"){
+    blanked = blankOut(CUSTOM_GAP[it.w] || it.ex, it.w);
+    if(!blanked) kind = "mcq";
+  }
+  if(kind === "mcq"){
+    VOCAB_MCQ.push({
+      sec:"Phần A · Trắc nghiệm: chọn từ theo nghĩa", type:"mcq", time:30,
+      q:"Từ / cụm từ nào có nghĩa là “" + it.m + "”?",
+      opts:[it.w].concat(distractors(it,3)), a:it.w,
+      note:"Ví dụ: " + it.ex
+    });
+  } else if(kind === "gap"){
+    VOCAB_GAP.push({
+      sec:"Phần B · Trắc nghiệm: điền từ vào câu", type:"mcq", time:35,
+      q:blanked, sub:"Gợi ý nghĩa: " + it.m,
+      opts:[it.w].concat(distractors(it,3)), a:it.w
+    });
+  } else {
+    const acc = [it.w];
+    if(it.pos === "n."){ acc.push("a " + it.w, "an " + it.w, "the " + it.w); }
+    VOCAB_TYPED.push({
+      sec:"Phần D · Tự luận: viết từ vựng", type:"typed", time:40,
+      q:"Viết từ / cụm từ tiếng Anh có nghĩa là “" + it.m + "”.",
+      sub:"Gợi ý: " + hintOf(it.w, it.pos),
+      a:it.w, accept:acc,
+      note:"Ví dụ: " + it.ex
+    });
+  }
+});
+
+/* 12 câu trắc nghiệm chia động từ — 2 câu mỗi thì */
+const TENSE_MCQ = [
+{q:"My mother ______ aerobics every morning before work.", sub:"HIỆN TẠI ĐƠN · dấu hiệu: every morning",
+ opts:["does","is doing","did","will do"], a:"does", note:"Chủ ngữ he/she/it + does."},
+{q:"My family ______ Scrabble on rainy days.", sub:"HIỆN TẠI ĐƠN · dấu hiệu: on rainy days",
+ opts:["plays","play","is playing","played"], a:"plays", note:"family là danh từ số ít → plays."},
+{q:"Look! Lisa and Nora ______ coffee together at the café.", sub:"HIỆN TẠI TIẾP DIỄN · dấu hiệu: Look!",
+ opts:["are having","have","were having","will have"], a:"are having"},
+{q:"Be quiet! Grandpa ______ crosswords in the garden.", sub:"HIỆN TẠI TIẾP DIỄN · dấu hiệu: Be quiet!",
+ opts:["is doing","does","did","was doing"], a:"is doing"},
+{q:"We ______ a trip to Da Lat last summer.", sub:"QUÁ KHỨ ĐƠN · dấu hiệu: last summer",
+ opts:["took","take","are taking","will take"], a:"took", note:"take → took (bất quy tắc)."},
+{q:"They ______ skiing in the mountains two years ago.", sub:"QUÁ KHỨ ĐƠN · dấu hiệu: two years ago",
+ opts:["went","go","are going","will go"], a:"went", note:"go → went (bất quy tắc)."},
+{q:"At seven o’clock yesterday evening, I ______ books in the library.", sub:"QUÁ KHỨ TIẾP DIỄN · dấu hiệu: At seven o’clock yesterday",
+ opts:["was reading","read","am reading","will read"], a:"was reading"},
+{q:"While my sister ______ judo, I was doing my homework.", sub:"QUÁ KHỨ TIẾP DIỄN · dấu hiệu: While",
+ opts:["was doing","did","does","will do"], a:"was doing"},
+{q:"Don’t worry — I ______ you a ride to the mall.", sub:"TƯƠNG LAI ĐƠN · quyết định ngay lúc nói",
+ opts:["will give","give","gave","was giving"], a:"will give"},
+{q:"I think the concert tonight ______ really wonderful.", sub:"TƯƠNG LAI ĐƠN · dấu hiệu: I think",
+ opts:["will be","is being","was","has"], a:"will be"},
+{q:"At this time next Sunday, we ______ in the national park.", sub:"TƯƠNG LAI TIẾP DIỄN · dấu hiệu: At this time next Sunday",
+ opts:["will be camping","will camp","are camping","camped"], a:"will be camping"},
+{q:"At eight o’clock tomorrow, Fiona ______ a play at the theater.", sub:"TƯƠNG LAI TIẾP DIỄN · dấu hiệu: At eight o’clock tomorrow",
+ opts:["will be watching","will watch","watches","was watching"], a:"will be watching"}
+].map(x => Object.assign({sec:"Phần C · Trắc nghiệm: chia động từ", type:"mcq", time:35}, x));
+
+/* 12 câu tự luận chia động từ — 2 câu mỗi thì */
+const TENSE_TYPED = [
+{q:"Mary ______ (take) a walk every day after dinner.", sub:"Chia ở thì HIỆN TẠI ĐƠN", a:"takes", accept:["takes"]},
+{q:"My brother ______ (watch) sports on TV every weekend.", sub:"Chia ở thì HIỆN TẠI ĐƠN", a:"watches", accept:["watches"]},
+{q:"Listen! The boys ______ (play) basketball in the gym.", sub:"Chia ở thì HIỆN TẠI TIẾP DIỄN", a:"are playing", accept:["are playing","'re playing","re playing"]},
+{q:"At the moment, my aunt ______ (enjoy) gardening in her new house.", sub:"Chia ở thì HIỆN TẠI TIẾP DIỄN", a:"is enjoying", accept:["is enjoying","'s enjoying","s enjoying"]},
+{q:"Yesterday my friend ______ (tell) me a very funny joke.", sub:"Chia ở thì QUÁ KHỨ ĐƠN", a:"told", accept:["told"]},
+{q:"Last Sunday we ______ (visit) a famous museum in the city.", sub:"Chia ở thì QUÁ KHỨ ĐƠN", a:"visited", accept:["visited"]},
+{q:"When you called me, the children ______ (have) a snack in the kitchen.", sub:"Chia ở thì QUÁ KHỨ TIẾP DIỄN", a:"were having", accept:["were having"]},
+{q:"At four o’clock yesterday, Nam ______ (study) in the school library.", sub:"Chia ở thì QUÁ KHỨ TIẾP DIỄN", a:"was studying", accept:["was studying"]},
+{q:"Let’s meet on Friday. We ______ (make) plans for the weekend.", sub:"Chia ở thì TƯƠNG LAI ĐƠN", a:"will make", accept:["will make","'ll make","ll make","we will make","we'll make"]},
+{q:"I’m too tired to cook. We ______ (go) out to eat tonight.", sub:"Chia ở thì TƯƠNG LAI ĐƠN", a:"will go", accept:["will go","'ll go","ll go","we will go","we'll go"]},
+{q:"This time tomorrow, my cousins ______ (play) video games at home.", sub:"Chia ở thì TƯƠNG LAI TIẾP DIỄN", a:"will be playing", accept:["will be playing","'ll be playing","ll be playing"]},
+{q:"At nine o’clock next Monday, I ______ (take) a writing class online.", sub:"Chia ở thì TƯƠNG LAI TIẾP DIỄN", a:"will be taking", accept:["will be taking","'ll be taking","ll be taking"]}
+].map(x => Object.assign({sec:"Phần E · Tự luận: chia động từ", type:"typed", time:45}, x));
+
+const QUESTIONS = [].concat(VOCAB_MCQ, VOCAB_GAP, TENSE_MCQ, VOCAB_TYPED, TENSE_TYPED);
+
+/* =========================================================
+   TIỆN ÍCH
+   ========================================================= */
+
+let studentName = "";
+function setName(){
+  const v = $("nameIn").value.trim();
+  studentName = v;
+  $("whoBox").textContent = v ? ("Học sinh: " + v) : "";
+}
+
+/* ---------- điều hướng ---------- */
+const PANELS = {home:"pHome", flash:"pFlash", quiz:"pQuiz", result:"pResult"};
+function show(key){
+  Object.values(PANELS).forEach(id => $(id).classList.remove("show"));
+  $(PANELS[key]).classList.add("show");
+  [$("tabHome"),$("tabFlash"),$("tabQuiz")].forEach(t=>t.classList.remove("active"));
+  if(key==="home") $("tabHome").classList.add("active");
+  if(key==="flash") $("tabFlash").classList.add("active");
+  if(key==="quiz"||key==="result") $("tabQuiz").classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+$("tabHome").onclick = ()=>{ stopTimer(); show("home"); };
+$("tabFlash").onclick = ()=>{ stopTimer(); show("flash"); };
+$("tabQuiz").onclick = ()=>{ startQuiz(); };
+$("goFlash").onclick = ()=>{ setName(); show("flash"); };
+$("goQuiz").onclick  = ()=>{ setName(); startQuiz(); };
+$("fcToQuiz").onclick= ()=>{ startQuiz(); };
+$("nameIn").addEventListener("input", setName);
+
+/* =========================================================
+   FLASHCARDS
+   ========================================================= */
+let deck = [], fcIdx = 0;
+
+(function initCats(){
+  const sel = $("catSel");
+  const all = document.createElement("option");
+  all.value = "all"; all.textContent = "Tất cả (79 từ)";
+  sel.appendChild(all);
+  VOCAB.forEach((g,i)=>{
+    const o = document.createElement("option");
+    o.value = String(i); o.textContent = g.cat + " (" + g.items.length + ")";
+    sel.appendChild(o);
+  });
+  sel.onchange = buildDeck;
+  buildDeck();
+})();
+
+function buildDeck(){
+  const v = $("catSel").value;
+  deck = v === "all" ? VOCAB.flatMap(g=>g.items) : VOCAB[Number(v)].items.slice();
+  fcIdx = 0;
+  renderCard();
+}
+function renderCard(){
+  if(!deck.length) return;
+  const it = deck[fcIdx];
+  $("fcCard").classList.remove("flipped");
+  $("fcWord").textContent = it.w;
+  $("fcIpa").textContent  = it.ipa;
+  $("fcPos").textContent  = it.pos;
+  $("fcMean").textContent = it.m;
+  $("fcEx").textContent   = "“" + it.ex + "”";
+  $("fcCount").textContent = (fcIdx+1) + " / " + deck.length;
+  $("fcBar").style.width = ((fcIdx+1)/deck.length*100) + "%";
+}
+$("fcCard").onclick = ()=> $("fcCard").classList.toggle("flipped");
+$("fcFlip").onclick = ()=> $("fcCard").classList.toggle("flipped");
+$("fcNext").onclick = ()=>{ fcIdx = (fcIdx+1) % deck.length; renderCard(); };
+$("fcPrev").onclick = ()=>{ fcIdx = (fcIdx-1+deck.length) % deck.length; renderCard(); };
+$("fcShuffle").onclick = ()=>{ deck = shuffle(deck); fcIdx = 0; renderCard(); };
+document.addEventListener("keydown", e=>{
+  if(!$("pFlash").classList.contains("show")) return;
+  if(e.code==="Space"){ e.preventDefault(); $("fcCard").classList.toggle("flipped"); }
+  if(e.code==="ArrowRight") $("fcNext").click();
+  if(e.code==="ArrowLeft")  $("fcPrev").click();
+});
+
+/* =========================================================
+   BÀI TẬP
+   ========================================================= */
+let qList = [], qi = 0, score = 0, tries = 0, locked = false;
+let nFirst = 0, nSecond = 0, nMiss = 0, nTimeout = 0;
+let wrongLog = [], startedAt = 0;
+let tHandle = null, tLeftMs = 0, tTotalMs = 0;
+
+function startQuiz(){
+  setName();
+  qList = QUESTIONS.map(q => {
+    const c = Object.assign({}, q);
+    if(c.type==="mcq") c.opts = shuffle(c.opts);
+    return c;
+  });
+  qi = 0; score = 0; tries = 0;
+  nFirst = nSecond = nMiss = nTimeout = 0;
+  wrongLog = []; startedAt = Date.now();
+  show("quiz");
+  renderQ();
+}
+
+function stopTimer(){ if(tHandle){ clearInterval(tHandle); tHandle = null; } }
+
+function startTimer(sec){
+  stopTimer();
+  tTotalMs = sec*1000; tLeftMs = tTotalMs;
+  const wrap = $("tBarWrap");
+  wrap.className = "timebar";
+  $("tBar").style.width = "100%";
+  $("tLeft").textContent = sec + "s";
+  tHandle = setInterval(()=>{
+    tLeftMs -= 100;
+    const pct = Math.max(0, tLeftMs/tTotalMs*100);
+    $("tBar").style.width = pct + "%";
+    $("tLeft").textContent = Math.max(0, Math.ceil(tLeftMs/1000)) + "s";
+    wrap.className = "timebar" + (pct<=20 ? " danger" : pct<=45 ? " warn" : "");
+    if(tLeftMs <= 0){ stopTimer(); timeUp(); }
+  }, 100);
+}
+
+function renderQ(){
+  const q = qList[qi];
+  tries = 0; locked = false;
+  $("qTag").textContent = q.sec;
+  $("qText").textContent = q.q;
+  $("qSub").textContent = q.sub || "";
+  $("qSub").style.display = q.sub ? "block" : "none";
+  $("qProg").textContent = "Câu " + (qi+1) + " / " + qList.length;
+  $("qScore").textContent = "Điểm: " + fmtPts(score);
+  $("qBar").style.width = (qi/qList.length*100) + "%";
+  $("tryInfo").textContent = "Lượt trả lời: 1 / 2";
+  const fb = $("qFb"); fb.className = "fb"; fb.innerHTML = "";
+  $("nextRow").style.display = "none";
+
+  const optsBox = $("qOpts"), typedBox = $("typedWrap");
+  optsBox.innerHTML = "";
+  if(q.type === "mcq"){
+    optsBox.style.display = "grid"; typedBox.style.display = "none";
+    q.opts.forEach((o,i)=>{
+      const b = document.createElement("button");
+      b.className = "opt"; b.type = "button";
+      b.innerHTML = '<span class="k">' + "ABCD"[i] + '</span><span>' + escapeHtml(o) + '</span>';
+      b.onclick = ()=> answerMcq(b, o);
+      optsBox.appendChild(b);
+    });
+  } else {
+    optsBox.style.display = "none"; typedBox.style.display = "block";
+    const inp = $("typedIn");
+    inp.value = ""; inp.disabled = false;
+    $("typedBtn").disabled = false;
+    setTimeout(()=>inp.focus(), 60);
+  }
+  startTimer(q.time || 30);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function fmtPts(n){ return (Math.round(n*10)/10).toString().replace(".",","); }
+
+/* ---------- trắc nghiệm ---------- */
+function answerMcq(btn, chosen){
+  if(locked) return;
+  const q = qList[qi];
+  if(norm(chosen) === norm(q.a)){
+    stopTimer();
+    btn.classList.add("right");
+    finishQ(true);
+  } else {
+    tries++;
+    btn.classList.add("wrong","shake");
+    btn.disabled = true;
+    setTimeout(()=>btn.classList.remove("shake"), 350);
+    if(tries === 1){
+      $("tryInfo").textContent = "Lượt trả lời: 2 / 2";
+      const fb = $("qFb");
+      fb.className = "fb show retry";
+      fb.innerHTML = "<b>Chưa đúng rồi.</b> Em còn 1 lượt nữa — đọc kỹ câu hỏi và thử lại nhé!";
+    } else {
+      stopTimer();
+      finishQ(false, chosen);
+    }
+  }
+}
+
+/* ---------- tự luận ---------- */
+$("typedBtn").onclick = checkTyped;
+$("typedIn").addEventListener("keydown", e=>{ if(e.key === "Enter") checkTyped(); });
+
+function checkTyped(){
+  if(locked) return;
+  const q = qList[qi];
+  const val = $("typedIn").value;
+  if(!val.trim()) return;
+  const ok = (q.accept || [q.a]).some(x => norm(x) === norm(val));
+  if(ok){
+    stopTimer();
+    finishQ(true);
+  } else {
+    tries++;
+    const inp = $("typedIn");
+    inp.classList.add("shake");
+    setTimeout(()=>inp.classList.remove("shake"), 350);
+    if(tries === 1){
+      $("tryInfo").textContent = "Lượt trả lời: 2 / 2";
+      const fb = $("qFb");
+      fb.className = "fb show retry";
+      fb.innerHTML = "<b>Chưa đúng rồi.</b> Em kiểm tra lại chính tả và dạng của động từ, rồi thử thêm 1 lần nhé!";
+      inp.select();
+    } else {
+      stopTimer();
+      finishQ(false, val);
+    }
+  }
+}
+
+/* ---------- hết giờ ---------- */
+function timeUp(){
+  if(locked) return;
+  nTimeout++;
+  finishQ(false, null, true);
+}
+
+/* ---------- chốt câu ---------- */
+function finishQ(correct, given, isTimeout){
+  locked = true;
+  stopTimer();
+  const q = qList[qi];
+  const fb = $("qFb");
+
+  if(q.type === "mcq"){
+    [...$("qOpts").children].forEach(b=>{
+      b.disabled = true;
+      const txt = b.lastChild.textContent;
+      if(norm(txt) === norm(q.a)) b.classList.add("right");
+    });
+  } else {
+    $("typedIn").disabled = true;
+    $("typedBtn").disabled = true;
+  }
+
+  if(correct){
+    if(tries === 0){ score += 1; nFirst++;
+      fb.className = "fb show ok";
+      fb.innerHTML = "<b>Chính xác ngay lần đầu! +1 điểm</b>" + (q.note ? "<br>" + escapeHtml(q.note) : "");
+    } else { score += 0.5; nSecond++;
+      fb.className = "fb show ok";
+      fb.innerHTML = "<b>Đúng rồi! +0,5 điểm</b> (em trả lời đúng ở lượt thứ hai)" + (q.note ? "<br>" + escapeHtml(q.note) : "");
+    }
+  } else {
+    nMiss++;
+    wrongLog.push({q:q.q, sub:q.sub || "", a:q.a, given: isTimeout ? "(hết giờ)" : given});
+    fb.className = "fb show no";
+    fb.innerHTML = (isTimeout ? "<b>Hết giờ mất rồi!</b> " : "<b>Chưa đúng.</b> ")
+      + "Đáp án đúng là: <b>" + escapeHtml(q.a) + "</b>"
+      + (q.note ? "<br>" + escapeHtml(q.note) : "");
+  }
+
+  $("qScore").textContent = "Điểm: " + fmtPts(score);
+  $("qBar").style.width = ((qi+1)/qList.length*100) + "%";
+  $("nextRow").style.display = "flex";
+  $("qNext").textContent = (qi === qList.length-1) ? "Xem kết quả →" : "Câu tiếp theo →";
+  $("qNext").focus();
+}
+
+$("qNext").onclick = ()=>{
+  if(qi < qList.length-1){ qi++; renderQ(); }
+  else showResult();
+};
+
+/* =========================================================
+   KẾT QUẢ
+   ========================================================= */
+function showResult(){
+  stopTimer();
+  const total = qList.length;
+  const pct = Math.round(score/total*100);
+  const secs = Math.round((Date.now()-startedAt)/1000);
+  const mm = Math.floor(secs/60), ss = secs%60;
+
+  $("rName").textContent = studentName ? ("Kết quả của " + studentName) : "Kết quả bài làm";
+  $("rScore").textContent = fmtPts(score);
+  $("rTotal").textContent = total;
+  $("rPct").textContent = pct + "%";
+  $("rFirst").textContent = nFirst;
+  $("rSecond").textContent = nSecond;
+  $("rMiss").textContent = nMiss;
+  $("rTime").textContent = mm + ":" + String(ss).padStart(2,"0");
+  $("rTimeout").textContent = nTimeout;
+
+  let praise;
+  if(pct >= 90) praise = "🏆 <b>Xuất sắc!</b> Em nắm rất chắc cả từ vựng lẫn cách chia động từ. Cô rất tự hào về em!";
+  else if(pct >= 75) praise = "🌟 <b>Làm tốt lắm!</b> Em đã hiểu bài rồi. Chỉ cần xem lại vài câu còn sai là hoàn hảo nhé!";
+  else if(pct >= 60) praise = "💪 <b>Khá lắm!</b> Em đã đi được hơn nửa chặng đường. Ôn lại Flashcards một lượt rồi làm lại, điểm sẽ cao hơn ngay.";
+  else if(pct >= 40) praise = "📚 <b>Cố lên nào!</b> Em cần ôn thêm phần từ vựng và dấu hiệu nhận biết của các thì. Đừng nản — làm lại lần nữa em sẽ tiến bộ rõ rệt!";
+  else praise = "🌱 <b>Không sao cả!</b> Ai cũng bắt đầu từ đâu đó. Em hãy học lại Flashcards thật kỹ, rồi quay lại làm bài. Cô tin em làm được!";
+  $("rPraise").innerHTML = praise;
+
+  const rv = $("rReview");
+  if(wrongLog.length){
+    let html = "<details><summary>Bấm để xem lại " + wrongLog.length
+             + " câu chưa đúng (phần này không cần chụp màn hình)</summary><div>";
+    wrongLog.forEach(w=>{
+      html += '<div class="rv"><div class="q">' + escapeHtml(w.q) + '</div>'
+            + (w.sub ? '<div style="font-size:.85rem;color:#5d6b7a">' + escapeHtml(w.sub) + '</div>' : "")
+            + '<div class="a">✓ Đáp án đúng: ' + escapeHtml(w.a) + '</div>'
+            + (w.given ? '<div class="y">✗ Em trả lời: ' + escapeHtml(w.given) + '</div>' : "")
+            + '</div>';
+    });
+    html += "</div></details>";
+    rv.innerHTML = html;
+  } else {
+    rv.innerHTML = '<div class="rv" style="text-align:center;font-weight:700;color:#2e7d4f">🎉 Tuyệt vời! Em không sai câu nào cả!</div>';
+  }
+
+  const now = new Date();
+  const d = String(now.getDate()).padStart(2,"0") + "/" + String(now.getMonth()+1).padStart(2,"0") + "/" + now.getFullYear();
+  const t = String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
+  $("rStamp").textContent = "VUIVUI English Class · Free-Time Activities · " + d + " lúc " + t;
+
+  show("result");
+}
+
+$("againBtn").onclick = startQuiz;
+$("backFlash").onclick = ()=>{ show("flash"); };
+</script>
+</body>
+</html>
